@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.ResponseEntity;
 import com.example.logpulse.alert.Alert;
+import com.example.logpulse.alert.AlertSummary;
 import com.example.logpulse.service.LogPulseService;
 
 @CrossOrigin(origins = "*")
@@ -53,8 +54,13 @@ public class LogController {
         try {
             validateFile(file);
             List<Alert> alerts = s.analyze(file.getInputStream());
+            AlertSummary summary = AlertSummary.from(alerts);
             Map<String, Object> data = new HashMap<>();
-            data.put("totalAlerts", alerts.size());
+            data.put("totalAlerts", summary.getTotal());
+            data.put("criticalAlerts", summary.getCritical());
+            data.put("highAlerts", summary.getHigh());
+            data.put("mediumAlerts", summary.getMedium());
+            data.put("lowAlerts", summary.getLow());
             data.put("alerts", alerts);
             return ResponseEntity.ok(data);
         } catch (IllegalArgumentException e) {
