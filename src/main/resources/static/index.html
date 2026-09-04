@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>LogPulse</title>
+
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+	<style>
+		:root {
+			--bg-desktop: #f9fafb;
+			--bg-card: #ffffff;
+			--border: #e5e7eb;
+			--text-primary: #111827;
+			--text-secondary: #6b7280;
+			--primary: #000000;
+			--critical: #dc2626;
+			--high: #d97706;
+			--medium: #ca8a04;
+			--low: #16a34a;
+			--font-sans: 'Inter', system-ui, sans-serif;
+			--font-mono: 'JetBrains Mono', monospace;
+		}
+
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			background: var(--bg-desktop);
+			color: var(--text-primary);
+			font-family: var(--font-sans);
+			min-height: 100vh;
+			line-height: 1.5;
+			-webkit-font-smoothing: antialiased;
+		}
+
+		.container {
+			max-width: 1000px;
+			margin: 0 auto;
+			padding: 2rem;
+		}
+
+		header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding-bottom: 2rem;
+			border-bottom: 1px solid var(--border);
+			margin-bottom: 2rem;
+		}
+
+		.logo {
+			font-weight: 600;
+			font-size: 1.25rem;
+			letter-spacing: -0.02em;
+		}
+
+		.status {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-family: var(--font-mono);
+			font-size: 0.75rem;
+			color: var(--text-secondary);
+			text-transform: uppercase;
+		}
+
+		.dot {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: var(--text-secondary);
+		}
+
+		.card {
+			background: var(--bg-card);
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			padding: 1.5rem;
+			margin-bottom: 1.5rem;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+		}
+
+		.section-title {
+			font-size: 1rem;
+			font-weight: 500;
+			margin-bottom: 1rem;
+		}
+
+		.drop-area {
+			border: 1px dashed var(--border);
+			border-radius: 6px;
+			padding: 3rem 1rem;
+			text-align: center;
+			cursor: pointer;
+			background: #fafafa;
+			position: relative;
+			transition: background 0.2s;
+		}
+
+		.drop-area:hover, .drop-area.active {
+			background: #f4f4f5;
+		}
+
+		.drop-area input[type="file"] {
+			position: absolute;
+			inset: 0;
+			opacity: 0;
+			cursor: pointer;
+		}
+
+		.drop-title {
+			font-weight: 500;
+			margin-bottom: 0.25rem;
+			font-size: 0.9rem;
+		}
+
+		.drop-hint {
+			color: var(--text-secondary);
+			font-size: 0.8rem;
+		}
+
+		.controls {
+			display: flex;
+			gap: 1rem;
+			margin-top: 1.5rem;
+			flex-wrap: wrap;
+		}
+
+		select {
+			padding: 0.5rem 1rem;
+			border: 1px solid var(--border);
+			border-radius: 4px;
+			background: white;
+			font-family: var(--font-mono);
+			font-size: 0.85rem;
+			outline: none;
+		}
+
+		.btn {
+			padding: 0.5rem 1rem;
+			border-radius: 4px;
+			font-family: var(--font-sans);
+			font-size: 0.85rem;
+			font-weight: 500;
+			cursor: pointer;
+			transition: background 0.2s;
+			text-transform: none;
+			letter-spacing: normal;
+		}
+
+		.btn-primary {
+			background: var(--primary);
+			color: white;
+			border: 1px solid var(--primary);
+		}
+
+		.btn-primary:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		.btn-outline {
+			background: transparent;
+			color: var(--text-primary);
+			border: 1px solid var(--border);
+		}
+
+		.btn-outline:hover {
+			background: #f3f4f6;
+		}
+
+		.btn-danger {
+			color: var(--critical);
+			border-color: #fca5a5;
+		}
+
+		.btn-danger:hover {
+			background: #fee2e2;
+		}
+
+		.console {
+			margin-top: 1.5rem;
+			background: #111827;
+			color: #e5e7eb;
+			padding: 1rem;
+			border-radius: 6px;
+			font-family: var(--font-mono);
+			font-size: 0.8rem;
+			max-height: 150px;
+			overflow-y: auto;
+		}
+
+		.log-entry { margin-bottom: 0.25rem; }
+		.log-time { color: #6b7280; margin-right: 0.5rem; }
+		.log-ok { color: #34d399; }
+		.log-err { color: #f87171; }
+		.log-info { color: #e5e7eb; }
+
+		.stats {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			gap: 1rem;
+			margin-bottom: 1.5rem;
+		}
+
+		.stat-box {
+			padding: 1rem;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: white;
+		}
+
+		.stat-num {
+			font-size: 1.5rem;
+			font-weight: 600;
+			margin-bottom: 0.25rem;
+			line-height: 1;
+		}
+
+		.stat-label {
+			font-size: 0.75rem;
+			color: var(--text-secondary);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		.charts {
+			display: grid;
+			grid-template-columns: 1fr 2fr;
+			gap: 1.5rem;
+			margin-bottom: 1.5rem;
+		}
+
+		.chart-container {
+			position: relative;
+			height: 250px;
+			width: 100%;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.85rem;
+		}
+
+		th, td {
+			padding: 0.75rem 1rem;
+			text-align: left;
+			border-bottom: 1px solid var(--border);
+		}
+
+		th {
+			font-weight: 500;
+			color: var(--text-secondary);
+		}
+
+		.tag {
+			display: inline-block;
+			padding: 0.15rem 0.5rem;
+			border-radius: 99px;
+			font-size: 0.7rem;
+			font-weight: 500;
+			font-family: var(--font-mono);
+		}
+
+		.tag-critical { background: #fee2e2; color: #991b1b; }
+		.tag-high { background: #ffedd5; color: #9a3412; }
+		.tag-medium { background: #fef9c3; color: #854d0e; }
+		.tag-low { background: #dcfce7; color: #166534; }
+
+		#resultsArea, #loaderArea { display: none; }
+
+		.alert-toast {
+			position: fixed;
+			bottom: 1rem;
+			right: 1rem;
+			background: var(--critical);
+			color: white;
+			padding: 0.75rem 1.5rem;
+			border-radius: 4px;
+			font-size: 0.85rem;
+			transform: translateY(150%);
+			transition: transform 0.2s;
+		}
+
+		.alert-toast.show { transform: translateY(0); }
+
+		select {
+			appearance: none;
+			background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+			background-repeat: no-repeat;
+			background-position: right 0.7rem top 50%;
+			background-size: 0.65rem auto;
+			padding-right: 2rem;
+		}
+	</style>
+</head>
+<body>
+
+	<div class="container">
+		<header>
+			<div class="logo">LogPulse</div>
+			<div class="status">
+				<div class="dot" id="pulseDot"></div>
+				<span id="statusText">Checking status...</span>
+			</div>
+		</header>
+
+		<div class="card">
+			<div class="section-title">Analysis Configuration</div>
+			
+			<div class="drop-area" id="dropArea">
+				<input type="file" id="fileInput" accept=".xml,.log,.txt,.json,.csv,.sample" />
+				<div class="drop-title" id="dropText">Click or drag log file to upload</div>
+				<div class="drop-hint" id="dropHint">XML, LOG, TXT, JSON, CSV, SAMPLE formats supported</div>
+			</div>
+
+			<div class="controls">
+				<select id="endpointSelect">
+					<option value="analyze">Endpoint: /analyze</option>
+					<option value="summary">Endpoint: /summary</option>
+				</select>
+				
+				<button class="btn btn-primary" id="scanBtn">Run Analysis</button>
+				
+				<div style="flex-grow: 1;"></div>
+				
+				<button class="btn btn-outline" id="dbFetchBtn">History</button>
+				<button class="btn btn-outline btn-danger" id="dbClearBtn">Clear Data</button>
+			</div>
+
+			<div class="console" id="logConsole">
+				<div class="log-entry">
+					<span class="log-time">[SYSTEM]</span>
+					<span class="log-info">Ready for operation.</span>
+				</div>
+			</div>
+		</div>
+
+		<div id="loaderArea" class="card" style="text-align: center; padding: 3rem;">
+			<div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">Processing...</div>
+		</div>
+
+		<div id="resultsArea">
+			<div class="stats">
+				<div class="stat-box">
+					<div class="stat-num" id="valTotal">0</div>
+					<div class="stat-label">Total Findings</div>
+				</div>
+				<div class="stat-box">
+					<div class="stat-num" id="valCritical" style="color: var(--critical);">0</div>
+					<div class="stat-label">Critical</div>
+				</div>
+				<div class="stat-box">
+					<div class="stat-num" id="valHigh" style="color: var(--high);">0</div>
+					<div class="stat-label">High</div>
+				</div>
+				<div class="stat-box">
+					<div class="stat-num" id="valMedium" style="color: var(--medium);">0</div>
+					<div class="stat-label">Medium</div>
+				</div>
+			</div>
+
+			<div class="charts">
+				<div class="card" style="margin-bottom:0;">
+					<div class="section-title">Severity</div>
+					<div class="chart-container"><canvas id="doughnutChart"></canvas></div>
+				</div>
+				<div class="card" style="margin-bottom:0;">
+					<div class="section-title">Category Distribution</div>
+					<div class="chart-container"><canvas id="barChart"></canvas></div>
+				</div>
+			</div>
+
+			<div class="card">
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+					<div class="section-title" style="margin: 0;">Log Entries</div>
+					<button class="btn btn-outline" id="exportBtn">Export CSV</button>
+				</div>
+				
+				<div style="overflow-x: auto;">
+					<table id="alertsTable">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Message</th>
+								<th>Severity</th>
+								<th>Category</th>
+							</tr>
+						</thead>
+						<tbody id="alertsTbody"></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="alert-toast" id="errorToast"></div>
+
+	<script>
+		let selectedFile = null;
+		let dChart = null;
+		let bChart = null;
+
+		function logMessage(status, msg) {
+			const c = document.getElementById('logConsole');
+			const now = new Date().toISOString().split('T')[1].slice(0, 8);
+			const cls = status === 'ERR' ? 'log-err' : (status === 'OK' ? 'log-ok' : 'log-info');
+			c.innerHTML += `<div class="log-entry"><span class="log-time">[${now}]</span> <span class="${cls}">${msg}</span></div>`;
+			c.scrollTop = c.scrollHeight;
+		}
+
+		function showError(msg) {
+			const t = document.getElementById('errorToast');
+			t.textContent = msg;
+			t.classList.add('show');
+			setTimeout(() => t.classList.remove('show'), 3000);
+			logMessage('ERR', msg);
+		}
+
+		async function checkServer() {
+			try {
+				const ctrl = new AbortController();
+				const timeout = setTimeout(() => ctrl.abort(), 2000);
+				await fetch('/analyze?path=ping', { method: 'GET', signal: ctrl.signal });
+				clearTimeout(timeout);
+				document.getElementById('statusText').textContent = 'Connected';
+				document.getElementById('pulseDot').style.background = 'var(--low)';
+			} catch (e) {
+				document.getElementById('statusText').textContent = 'Disconnected';
+				document.getElementById('pulseDot').style.background = 'var(--critical)';
+			}
+		}
+
+		const dropArea = document.getElementById('dropArea');
+		const fileInput = document.getElementById('fileInput');
+
+		dropArea.addEventListener('dragover', e => {
+			e.preventDefault();
+			dropArea.classList.add('active');
+		});
+
+		dropArea.addEventListener('dragleave', () => dropArea.classList.remove('active'));
+
+		dropArea.addEventListener('drop', e => {
+			e.preventDefault();
+			dropArea.classList.remove('active');
+			if (e.dataTransfer.files.length) {
+				const dt = new DataTransfer();
+				dt.items.add(e.dataTransfer.files[0]);
+				fileInput.files = dt.files;
+				handleFileSelect(e.dataTransfer.files[0]);
+			}
+		});
+
+		fileInput.addEventListener('change', e => {
+			if (e.target.files.length) handleFileSelect(e.target.files[0]);
+		});
+
+		function handleFileSelect(file) {
+			selectedFile = file;
+			document.getElementById('dropText').textContent = file.name;
+			document.getElementById('dropHint').textContent = `${(file.size / 1024).toFixed(2)} KB`;
+			logMessage('INFO', `Mounted file: ${file.name}`);
+		}
+
+		document.getElementById('scanBtn').addEventListener('click', async () => {
+			if (!selectedFile) {
+				showError('No file selected.');
+				return;
+			}
+			
+			const ep = document.getElementById('endpointSelect').value;
+			document.getElementById('scanBtn').disabled = true;
+			document.getElementById('resultsArea').style.display = 'none';
+			document.getElementById('loaderArea').style.display = 'block';
+			logMessage('INFO', `Executing /${ep}...`);
+
+			try {
+				const fd = new FormData();
+				fd.append('file', selectedFile);
+
+				const res = await fetch(`/${ep}`, { method: 'POST', body: fd });
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				const alerts = Array.isArray(data) ? data : (data.alerts || []);
+				
+				logMessage('OK', `Analysis complete. ${alerts.length} events logged.`);
+				renderDashboard(alerts);
+			} catch (e) {
+				showError(e.message);
+			} finally {
+				document.getElementById('scanBtn').disabled = false;
+				document.getElementById('loaderArea').style.display = 'none';
+			}
+		});
+
+		document.getElementById('dbFetchBtn').addEventListener('click', async () => {
+			document.getElementById('resultsArea').style.display = 'none';
+			document.getElementById('loaderArea').style.display = 'block';
+			logMessage('INFO', 'Fetching history...');
+
+			try {
+				const res = await fetch('/alerts');
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+				const alerts = await res.json();
+				logMessage('OK', `Loaded ${alerts.length} historical records.`);
+				renderDashboard(alerts);
+			} catch (e) {
+				showError(e.message);
+			} finally {
+				document.getElementById('loaderArea').style.display = 'none';
+			}
+		});
+
+		document.getElementById('dbClearBtn').addEventListener('click', async () => {
+			try {
+				const res = await fetch('/alerts', { method: 'DELETE' });
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+				logMessage('OK', 'Database cleared.');
+				document.getElementById('resultsArea').style.display = 'none';
+			} catch (e) {
+				showError(e.message);
+			}
+		});
+
+		function inferCategory(msg) {
+			const l = String(msg).toLowerCase();
+			if (l.includes('brute')) return 'Brute Force';
+			if (l.includes('odd') || l.includes('login')) return 'Suspicious Login';
+			if (l.includes('new') || l.includes('user')) return 'Account Creation';
+			if (l.includes('ip') || l.includes('multiple')) return 'Multi IP Login';
+			return 'Anomaly';
+		}
+
+		function renderDashboard(alerts) {
+			document.getElementById('resultsArea').style.display = 'block';
+			
+			const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+			const cats = {};
+			const tbody = document.getElementById('alertsTbody');
+			tbody.innerHTML = '';
+
+			alerts.forEach((a, i) => {
+				const sev = (a.severity || 'LOW').toUpperCase();
+				if (counts[sev] !== undefined) counts[sev]++;
+				else counts.LOW++;
+				
+				const cat = inferCategory(a.message);
+				cats[cat] = (cats[cat] || 0) + 1;
+
+				const tr = document.createElement('tr');
+				tr.innerHTML = `
+					<td style="font-family: var(--font-mono); color: var(--text-secondary);">#${String(i+1).padStart(3, '0')}</td>
+					<td>${a.message.replace(/</g, '&lt;')}</td>
+					<td><span class="tag tag-${sev.toLowerCase()}">${sev}</span></td>
+					<td style="color: var(--text-secondary);">${cat}</td>
+				`;
+				tbody.appendChild(tr);
+			});
+
+			document.getElementById('valTotal').textContent = alerts.length;
+			document.getElementById('valCritical').textContent = counts.CRITICAL;
+			document.getElementById('valHigh').textContent = counts.HIGH;
+			document.getElementById('valMedium').textContent = counts.MEDIUM;
+
+			drawCharts(counts, cats);
+		}
+
+		function drawCharts(counts, cats) {
+			Chart.defaults.font.family = "'Inter', sans-serif";
+			Chart.defaults.color = '#6b7280';
+			
+			if (dChart) dChart.destroy();
+			dChart = new Chart(document.getElementById('doughnutChart'), {
+				type: 'doughnut',
+				data: {
+					labels: ['Critical', 'High', 'Medium', 'Low'],
+					datasets: [{
+						data: [counts.CRITICAL, counts.HIGH, counts.MEDIUM, counts.LOW],
+						backgroundColor: ['#ef4444', '#f97316', '#eab308', '#10b981'],
+						borderWidth: 0
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					cutout: '75%',
+					plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 6 } } }
+				}
+			});
+
+			if (bChart) bChart.destroy();
+			bChart = new Chart(document.getElementById('barChart'), {
+				type: 'bar',
+				data: {
+					labels: Object.keys(cats),
+					datasets: [{
+						data: Object.values(cats),
+						backgroundColor: '#cbd5e1',
+						hoverBackgroundColor: '#94a3b8',
+						borderRadius: 2
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					scales: {
+						y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false }, ticks: { stepSize: 1 } },
+						x: { grid: { display: false }, border: { display: false } }
+					},
+					plugins: { legend: { display: false } }
+				}
+			});
+		}
+
+		document.getElementById('exportBtn').addEventListener('click', () => {
+			const rows = [['ID', 'Message', 'Severity', 'Category']];
+			document.querySelectorAll('#alertsTbody tr').forEach(tr => {
+				const cells = tr.querySelectorAll('td');
+				if(cells.length === 4) {
+					rows.push([
+						cells[0].textContent,
+						`"${cells[1].textContent.replace(/"/g, '""')}"`,
+						cells[2].textContent,
+						cells[3].textContent
+					]);
+				}
+			});
+			
+			const content = rows.map(r => r.join(',')).join('\\n');
+			const blob = new Blob([content], { type: 'text/csv' });
+			const a = document.createElement('a');
+			a.href = URL.createObjectURL(blob);
+			a.download = 'export.csv';
+			a.click();
+		});
+
+		window.addEventListener('load', checkServer);
+	</script>
+</body>
+</html>
