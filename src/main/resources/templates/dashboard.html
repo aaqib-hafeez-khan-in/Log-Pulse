@@ -1,0 +1,31 @@
+<section th:fragment="dashboard" class="app">
+    <header class="header">
+        <div><span class="eyebrow">Security log analysis</span><h1>LogPulse</h1></div>
+        <div class="status"><span id="pulseDot" class="dot"></span><span id="statusText">Ready</span></div>
+    </header>
+    <section class="card">
+        <h2>Analysis</h2>
+        <label class="upload">
+            <input id="fileInput" type="file" accept=".xml,.log,.txt,.json,.csv,.sample">
+            <strong id="dropText">Choose a log file</strong><span id="dropHint">XML, LOG, TXT, JSON, CSV or SAMPLE</span>
+        </label>
+        <div class="controls">
+            <select id="endpointSelect"><option value="analyze">Run analysis</option><option value="summary">Run summary</option></select>
+            <button id="scanBtn" class="primary">Analyze</button><button id="dbFetchBtn">History</button><button id="dbClearBtn" class="danger">Clear data</button>
+        </div>
+        <pre id="logConsole">[SYSTEM] Ready for operation.</pre>
+    </section>
+    <section id="resultsArea" class="results">
+        <div class="stats">
+            <div><strong id="valTotal">0</strong><span>Total</span></div><div><strong id="valCritical">0</strong><span>Critical</span></div><div><strong id="valHigh">0</strong><span>High</span></div><div><strong id="valMedium">0</strong><span>Medium</span></div><div><strong id="valLow">0</strong><span>Low</span></div>
+        </div>
+        <div class="card chart-card"><h2>Severity</h2><canvas id="severityChart"></canvas></div>
+        <div class="card table-card">
+            <h2>Findings</h2>
+            <div class="table-wrap"><table><thead><tr><th>Severity</th><th>Type</th><th>Message</th><th>User</th><th>IP</th></tr></thead><tbody id="alertsBody"></tbody></table></div>
+        </div>
+    </section>
+    <div id="toast" class="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="/js/logpulse.js"></script>
+</section>
